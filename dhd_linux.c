@@ -7879,7 +7879,6 @@ dhd_lookup_map(osl_t *osh, char *fname, uint32 pc, char *pc_fn,
 	uint32 size = 0, mem_offset = 0;
 #else
 	struct file *filep = NULL;
-	mm_segment_t fs;
 #endif /* DHD_LINUX_STD_FW_API */
 	char *raw_fmts = NULL, *raw_fmts_loc = NULL, *cptr = NULL;
 	uint32 read_size = READ_NUM_BYTES;
@@ -7916,9 +7915,6 @@ dhd_lookup_map(osl_t *osh, char *fname, uint32 pc, char *pc_fn,
 	}
 	size = fw->size;
 #else
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-
 	filep = dhd_filp_open(fname, O_RDONLY, 0);
 	if (IS_ERR(filep) || (filep == NULL)) {
 		DHD_ERROR(("%s: Failed to open %s \n",  __FUNCTION__, fname));
@@ -8083,8 +8079,6 @@ fail:
 #else
 	if (!IS_ERR(filep))
 		dhd_filp_close(filep, NULL);
-
-	set_fs(fs);
 
 #endif /* DHD_LINUX_STD_FW_API */
 	if (!(count & PC_FOUND_BIT)) {
@@ -8299,7 +8293,6 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 {
 	struct file *filep = NULL;
 	struct kstat stat;
-	mm_segment_t fs;
 	char *raw_fmts =  NULL;
 	int logstrs_size = 0;
 	int error = 0;
@@ -8308,9 +8301,6 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 		DHD_ERROR_NO_HW4(("%s : turned off logstr parsing\n", __FUNCTION__));
 		return BCME_ERROR;
 	}
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	filep = dhd_filp_open(logstrs_path, O_RDONLY, 0);
 
@@ -8349,7 +8339,6 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 	if (dhd_parse_logstrs_file(osh, raw_fmts, logstrs_size, temp)
 			== BCME_OK) {
 		dhd_filp_close(filep, NULL);
-		set_fs(fs);
 		return BCME_OK;
 	}
 
@@ -8365,7 +8354,6 @@ dhd_init_logstrs_array(osl_t *osh, dhd_event_log_t *temp)
 	if (!IS_ERR(filep))
 		dhd_filp_close(filep, NULL);
 
-	set_fs(fs);
 	temp->fmts = NULL;
 	temp->raw_fmts = NULL;
 
@@ -8377,16 +8365,12 @@ dhd_read_map(osl_t *osh, char *fname, uint32 *ramstart, uint32 *rodata_start,
 		uint32 *rodata_end)
 {
 	struct file *filep = NULL;
-	mm_segment_t fs;
 	int err = BCME_ERROR;
 
 	if (fname == NULL) {
 		DHD_ERROR(("%s: ERROR fname is NULL \n", __FUNCTION__));
 		return BCME_ERROR;
 	}
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	filep = dhd_filp_open(fname, O_RDONLY, 0);
 	if (IS_ERR(filep) || (filep == NULL)) {
@@ -8402,8 +8386,6 @@ fail:
 	if (!IS_ERR(filep))
 		dhd_filp_close(filep, NULL);
 
-	set_fs(fs);
-
 	return err;
 }
 
@@ -8411,7 +8393,6 @@ static int
 dhd_init_static_strs_array(osl_t *osh, dhd_event_log_t *temp, char *str_file, char *map_file)
 {
 	struct file *filep = NULL;
-	mm_segment_t fs;
 	char *raw_fmts =  NULL;
 	uint32 logstrs_size = 0;
 	int error = 0;
@@ -8433,9 +8414,6 @@ dhd_init_static_strs_array(osl_t *osh, dhd_event_log_t *temp, char *str_file, ch
 	}
 	DHD_ERROR(("ramstart: 0x%x, rodata_start: 0x%x, rodata_end:0x%x\n",
 		ramstart, rodata_start, rodata_end));
-
-	fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	filep = dhd_filp_open(str_file, O_RDONLY, 0);
 	if (IS_ERR(filep) || (filep == NULL)) {
@@ -8494,7 +8472,6 @@ dhd_init_static_strs_array(osl_t *osh, dhd_event_log_t *temp, char *str_file, ch
 	}
 
 	dhd_filp_close(filep, NULL);
-	set_fs(fs);
 
 	return BCME_OK;
 
@@ -8506,8 +8483,6 @@ fail:
 fail1:
 	if (!IS_ERR(filep))
 		dhd_filp_close(filep, NULL);
-
-	set_fs(fs);
 
 	if (strstr(str_file, ram_file_str) != NULL) {
 		temp->raw_sstr = NULL;
@@ -10196,7 +10171,6 @@ static int dhd_preinit_proc(dhd_pub_t *dhd, int ifidx, char *name, char *value)
 
 static int dhd_preinit_config(dhd_pub_t *dhd, int ifidx)
 {
-	mm_segment_t old_fs;
 	struct kstat stat;
 	struct file *fp = NULL;
 	unsigned int len;
@@ -10212,15 +10186,11 @@ static int dhd_preinit_config(dhd_pub_t *dhd, int ifidx)
 		return 0;
 	}
 
-	old_fs = get_fs();
-	set_fs(get_ds());
 	if ((ret = dhd_vfs_stat(config_path, &stat))) {
-		set_fs(old_fs);
 		printk(KERN_ERR "%s: Failed to get information (%d)\n",
 			config_path, ret);
 		return ret;
 	}
-	set_fs(old_fs);
 
 	if (!(buf = MALLOC(dhd->osh, stat.size + 1))) {
 		printk(KERN_ERR "Failed to allocate memory %llu bytes\n", stat.size);
@@ -17277,12 +17247,7 @@ int write_file(const char * file_name, uint32 flags, uint8 *buf, int size)
 {
 	int ret = 0;
 	struct file *fp = NULL;
-	mm_segment_t old_fs;
 	loff_t pos = 0;
-
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	/* open file to write */
 	fp = dhd_filp_open(file_name, flags, 0664);
@@ -17310,9 +17275,6 @@ exit:
 	/* close file before return */
 	if (!IS_ERR(fp))
 		dhd_filp_close(fp, current->files);
-
-	/* restore previous address limit */
-	set_fs(old_fs);
 
 	return ret;
 }
@@ -20564,12 +20526,7 @@ int
 dhd_write_file(const char *filepath, char *buf, int buf_len)
 {
 	struct file *fp = NULL;
-	mm_segment_t old_fs;
 	int ret = 0;
-
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	/* File is always created. */
 	fp = dhd_filp_open(filepath, O_RDWR | O_CREAT, 0664);
@@ -20591,9 +20548,6 @@ dhd_write_file(const char *filepath, char *buf, int buf_len)
 		dhd_filp_close(fp, NULL);
 	}
 
-	/* restore previous address limit */
-	set_fs(old_fs);
-
 	return ret;
 }
 
@@ -20601,25 +20555,16 @@ int
 dhd_read_file(const char *filepath, char *buf, int buf_len)
 {
 	struct file *fp = NULL;
-	mm_segment_t old_fs;
 	int ret;
-
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	fp = dhd_filp_open(filepath, O_RDONLY, 0);
 	if (IS_ERR(fp) || (fp == NULL)) {
-		set_fs(old_fs);
 		DHD_ERROR(("%s: File %s doesn't exist\n", __FUNCTION__, filepath));
 		return BCME_ERROR;
 	}
 
 	ret = dhd_kernel_read_compat(fp, 0, buf, buf_len);
 	dhd_filp_close(fp, NULL);
-
-	/* restore previous address limit */
-	set_fs(old_fs);
 
 	/* Return the number of bytes read */
 	if (ret > 0) {

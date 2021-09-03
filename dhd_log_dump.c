@@ -1243,7 +1243,6 @@ do_dhd_log_dump(dhd_pub_t *dhdp, log_dump_type_t *type)
 {
 	int ret = 0, i = 0;
 	struct file *fp = NULL;
-	mm_segment_t old_fs;
 	loff_t pos = 0;
 	char dump_path[128];
 	uint32 file_mode;
@@ -1269,9 +1268,6 @@ do_dhd_log_dump(dhd_pub_t *dhdp, log_dump_type_t *type)
 	if ((ret = dhd_log_flush(dhdp, type)) < 0) {
 		goto exit1;
 	}
-	/* change to KERNEL_DS address limit */
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
 
 	dhd_get_debug_dump_file_name(NULL, dhdp, dump_path, sizeof(dump_path));
 
@@ -1482,7 +1478,6 @@ exit2:
 		DHD_ERROR(("%s: Finished writing log dump to file - '%s' \n",
 				__FUNCTION__, dump_path));
 	}
-	set_fs(old_fs);
 exit1:
 	if (type) {
 		MFREE(dhdp->osh, type, sizeof(*type));

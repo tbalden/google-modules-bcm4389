@@ -278,7 +278,6 @@ dhd_check_file_exist(char* fname)
 	const struct firmware *fw = NULL;
 #else
 	struct file *filep = NULL;
-	mm_segment_t fs;
 #endif /* DHD_LINUX_STD_FW_API */
 
 	if (fname == NULL) {
@@ -294,9 +293,6 @@ dhd_check_file_exist(char* fname)
 		goto fail;
 	}
 #else
-	fs = get_fs();
-	set_fs(KERNEL_DS);
-
 	filep = dhd_filp_open(fname, O_RDONLY, 0);
 	if (IS_ERR(filep) || (filep == NULL)) {
 		DHD_LOG_MEM(("%s: Failed to open %s \n",  __FUNCTION__, fname));
@@ -313,8 +309,6 @@ fail:
 #else
 	if (!IS_ERR(filep))
 		dhd_filp_close(filep, NULL);
-
-	set_fs(fs);
 #endif /* DHD_LINUX_STD_FW_API */
 	return err;
 }
