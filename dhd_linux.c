@@ -21211,17 +21211,19 @@ void
 dhd_print_kirqstats(dhd_pub_t *dhd, unsigned int irq_num)
 {
 	unsigned long flags = 0;
+	struct irq_data *data;
 	struct irq_desc *desc;
 	int i;          /* cpu iterator */
 	struct bcmstrbuf strbuf;
 	char tmp_buf[KIRQ_PRINT_BUF_LEN];
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 28))
-	desc = irq_to_desc(irq_num);
-	if (!desc) {
-		DHD_ERROR(("%s : irqdesc is not found \n", __FUNCTION__));
+	data = irq_get_irq_data(irq_num);
+	if (!data) {
+		DHD_ERROR(("%s : failed to get irq data\n", __FUNCTION__));
 		return;
 	}
+	desc = irq_data_to_desc(data);
 	bcm_binit(&strbuf, tmp_buf, KIRQ_PRINT_BUF_LEN);
 	raw_spin_lock_irqsave(&desc->lock, flags);
 	bcm_bprintf(&strbuf, "dhd irq %u:", irq_num);

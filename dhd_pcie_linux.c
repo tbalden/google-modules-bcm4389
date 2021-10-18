@@ -2373,7 +2373,9 @@ void
 dhdpcie_enable_irq_loop(dhd_bus_t *bus)
 {
 	/* Enable IRQ in a loop till host_irq_disable_count becomes 0 */
-	uint host_irq_disable_count = dhdpcie_irq_disabled(bus);
+	int host_irq_disable_count = dhdpcie_irq_disabled(bus);
+	if (host_irq_disable_count < 0)
+		return;
 	while (host_irq_disable_count--) {
 		dhdpcie_enable_irq(bus); /* Enable back interrupt!! */
 	}
@@ -2382,7 +2384,16 @@ dhdpcie_enable_irq_loop(dhd_bus_t *bus)
 int
 dhdpcie_irq_disabled(dhd_bus_t *bus)
 {
-	struct irq_desc *desc = irq_to_desc(bus->dev->irq);
+	struct irq_data *data;
+	struct irq_desc *desc;
+
+	data = irq_get_irq_data(bus->dev->irq);
+	if (!data) {
+		DHD_ERROR(("%s: failed to get irq data\n", __FUNCTION__));
+		return -EINVAL;
+	}
+
+	desc = irq_data_to_desc(data);
 	/* depth will be zero, if enabled */
 	return desc->depth;
 }
