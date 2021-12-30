@@ -4516,7 +4516,6 @@ wl_cfgnan_suspend_all_geofence_rng_sessions(struct net_device *ndev,
 	WL_MEM(("Suspending all geofence sessions: "
 		"suspend_reason = %d\n", suspend_reason));
 
-	cancel_flags |= NAN_RNG_TERM_FLAG_IMMEDIATE;
 	for (i = 0; i < NAN_MAX_RANGING_INST; i++) {
 		ranging_inst = &cfg->nancfg->nan_ranging_info[i];
 		/* Cancel Ranging if in progress for rang_inst */

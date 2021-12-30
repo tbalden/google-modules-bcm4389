@@ -11348,9 +11348,6 @@ const struct nla_policy nan_attr_policy[NAN_ATTRIBUTE_MAX] = {
 	[NAN_ATTRIBUTE_PEER_DISC_MAC_ADDR] = { .type = NLA_BINARY, .len = ETHER_ADDR_LEN },
 	[NAN_ATTRIBUTE_PEER_NDI_MAC_ADDR] = { .type = NLA_BINARY, .len = ETHER_ADDR_LEN },
 	[NAN_ATTRIBUTE_IF_ADDR] = { .type = NLA_BINARY, .len = ETHER_ADDR_LEN },
-	[NAN_ATTRIBUTE_ENTRY_CONTROL] = { .type = NLA_U8, .len = sizeof(uint8) },
-	[NAN_ATTRIBUTE_AVAIL_BIT_MAP] = { .type = NLA_U32, .len = sizeof(uint32) },
-	[NAN_ATTRIBUTE_CHANNEL] = { .type = NLA_U32, .len = sizeof(uint32) },
 	[NAN_ATTRIBUTE_NO_CONFIG_AVAIL] = { .type = NLA_U8, .len = sizeof(uint8) },
 	[NAN_ATTRIBUTE_CHANNEL_INFO] = { .type = NLA_BINARY, .len =
 	sizeof(nan_channel_info_t) * NAN_MAX_CHANNEL_INFO_SUPPORTED },

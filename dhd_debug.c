@@ -180,7 +180,6 @@ dhd_dbg_update_to_ring(dhd_pub_t *dhdp, void *ring, uint32 w_len)
 	return dhd_dbg_push_to_ring(dhdp, ((dhd_dbg_ring_t *)ring)->id, NULL, (void*)&w_len);
 }
 
-extern void dhd_os_dbg_urgent_pullreq(void *os_priv, int ring_id);
 static uint32
 dhd_dbg_urgent_pull(dhd_pub_t *dhdp, dhd_dbg_ring_t *ring)
 {

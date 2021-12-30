@@ -632,15 +632,15 @@ extern int si_pcie_configspace_get(const si_t *sih, uint8 *buf, uint size);
 
 #ifndef BCMDONGLEHOST
 extern void si_muxenab(si_t *sih, uint32 w);
-extern uint32 si_clear_backplane_to(si_t *sih);
+uint32 si_clear_backplane_to(si_t *sih);
 extern void si_slave_wrapper_add(si_t *sih);
 
 #ifdef AXI_TIMEOUTS_NIC
-extern uint32 si_clear_backplane_to_fast(void *sih, void *addr);
+uint32 si_clear_backplane_to_fast(void *sih, void *addr);
 #endif /* AXI_TIMEOUTS_NIC */
 
 #if defined(AXI_TIMEOUTS) || defined(AXI_TIMEOUTS_NIC)
-extern uint32 si_clear_backplane_to_per_core(si_t *sih, uint coreid, uint coreunit, void *wrap);
+uint32 si_clear_backplane_to_per_core(si_t *sih, uint coreid, uint coreunit, void *wrap);
 #endif /* AXI_TIMEOUTS || AXI_TIMEOUTS_NIC */
 #endif /* !BCMDONGLEHOST */
 
