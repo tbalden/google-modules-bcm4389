@@ -2620,8 +2620,8 @@ _wl_cfg80211_check_axi_error(struct bcm_cfg80211 *cfg)
 /* All Android/Linux private/Vendor Interface calls should make
  *  use of below API for interface creation.
  */
-struct wireless_dev *
-wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
+static struct wireless_dev *
+_wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
 	struct net_device *primary_ndev,
 	wl_iftype_t wl_iftype, const char *name, u8 *mac)
 {
@@ -2657,7 +2657,6 @@ wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
 	if ((wl_mode = wl_iftype_to_mode(wl_iftype)) < 0) {
 		return NULL;
 	}
-	mutex_lock(&cfg->if_sync);
 #ifdef WL_NAN
 	if (wl_iftype == WL_IF_TYPE_NAN) {
 	/*
@@ -2674,14 +2673,12 @@ wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
 	 */
 	if ((wl_iftype != WL_IF_TYPE_P2P_DISC) &&
 		(err = wl_cfg80211_handle_if_role_conflict(cfg, wl_iftype)) < 0) {
-		mutex_unlock(&cfg->if_sync);
 		return NULL;
 	}
 #endif /* WL_IFACE_MGMT */
 #if defined(DNGL_AXI_ERROR_LOGGING) && defined(REPORT_AXI_ERROR)
 	/* Check the previous smmu fault error */
 	if ((err = _wl_cfg80211_check_axi_error(cfg)) < 0) {
-		mutex_unlock(&cfg->if_sync);
 		return NULL;
 	}
 #endif /* DNGL_AXI_ERROR_LOGGING && REPORT_AXI_ERROR */
@@ -2758,7 +2755,6 @@ wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
 		" cfg_iftype:%d, vif_count:%d\n",
 		(wdev->netdev ? wdev->netdev->ifindex : 0xff),
 		wdev->iftype, cfg->vif_count));
-	mutex_unlock(&cfg->if_sync);
 	return wdev;
 
 fail:
@@ -2798,8 +2794,21 @@ fail:
 
 	}
 exit:
-	mutex_unlock(&cfg->if_sync);
 	return NULL;
+}
+
+struct wireless_dev *
+wl_cfg80211_add_if(struct bcm_cfg80211 *cfg,
+	struct net_device *primary_ndev,
+	wl_iftype_t wl_iftype, const char *name, u8 *mac)
+{
+	struct wireless_dev *wdev = NULL;
+	mutex_lock(&cfg->if_sync);
+	DHD_OS_WAKE_LOCK((dhd_pub_t *)(cfg->pub));
+	wdev = _wl_cfg80211_add_if(cfg, primary_ndev, wl_iftype, name, mac);
+	DHD_OS_WAKE_UNLOCK((dhd_pub_t *)(cfg->pub));
+	mutex_unlock(&cfg->if_sync);
+	return wdev;
 }
 
 static s32
@@ -2841,8 +2850,11 @@ _wl_cfg80211_del_if(struct bcm_cfg80211 *cfg, struct net_device *primary_ndev,
 	BCM_REFERENCE(dhd);
 #endif /* BCMDONGLEHOST */
 
+	DHD_OS_WAKE_LOCK((dhd_pub_t *)(cfg->pub));
+
 	if (!cfg) {
-		return -EINVAL;
+		ret = -EINVAL;
+		goto end;
 	}
 
 #if defined(BCMDONGLEHOST)
@@ -2859,7 +2871,8 @@ _wl_cfg80211_del_if(struct bcm_cfg80211 *cfg, struct net_device *primary_ndev,
 	/* Check whether we have a valid wdev ptr */
 	if (unlikely(!wdev)) {
 		WL_ERR(("wdev not found. '%s' does not exists\n", ifname));
-		return -ENODEV;
+		ret = -ENODEV;
+		goto end;
 	}
 
 	WL_INFORM_MEM(("del vif. wdev cfg_iftype:%d\n", wdev->iftype));
@@ -2887,7 +2900,8 @@ _wl_cfg80211_del_if(struct bcm_cfg80211 *cfg, struct net_device *primary_ndev,
 			if (cfg->vif_count) {
 				cfg->vif_count--;
 			}
-			return BCME_OK;
+			ret = BCME_OK;
+			goto end;
 		}
 	}
 #endif /* WL_CFG80211_P2P_DEV_IF */
@@ -3000,6 +3014,7 @@ exit:
 		}
 	}
 end:
+	DHD_OS_WAKE_UNLOCK((dhd_pub_t *)(cfg->pub));
 	return ret;
 }
 
@@ -5216,11 +5231,15 @@ wl_set_fils_params(struct net_device *dev, struct cfg80211_connect_params *sme)
 			goto exit;
 		}
 	}
-	err = bcm_xtlv_put_data(&tbuf, WL_FILS_XTLV_ERP_NEXT_SEQ_NUM,
+
+	if (sme->fils_erp_username_len && sme->fils_erp_realm_len &&
+		sme->fils_erp_rrk_len) {
+		err = bcm_xtlv_put_data(&tbuf, WL_FILS_XTLV_ERP_NEXT_SEQ_NUM,
 			(u8 *)&sme->fils_erp_next_seq_num, sizeof(sme->fils_erp_next_seq_num));
-	if (err != BCME_OK) {
-		WL_ERR(("%s: write xtlv failed\n", __FUNCTION__));
-		goto exit;
+		if (err != BCME_OK) {
+			WL_ERR(("%s: write xtlv failed\n", __FUNCTION__));
+			goto exit;
+		}
 	}
 	iov_buf->len = bcm_xtlv_buf_len(&tbuf);
 	err = wldev_iovar_setbuf(dev, "fils", iov_buf, iov_buf->len + sizeof(bcm_iov_buf_t) -
