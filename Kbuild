@@ -219,7 +219,7 @@ ifneq ($(CONFIG_BCMDHD_PCIE),)
 # Enable FIS Dump
 #	DHDCFLAGS += -DDHD_FIS_DUMP
 # Enable System Debug Trace Controller, Embedded Trace Buffer
-	DHDCFLAGS += -DDHD_SDTC_ETB_DUMP
+#	DHDCFLAGS += -DDHD_SDTC_ETB_DUMP
 # Enable SMD/Minidump collection
 	DHDCFLAGS += -DD2H_MINIDUMP
 # ROT and Scan timeout debugging due to Kernel scheduling problem
@@ -384,9 +384,9 @@ DHDCFLAGS += -DWL_P2P_RAND
 #Custom Mapping of DSCP to User Priority
 DHDCFLAGS += -DWL_CUSTOM_MAPPING_OF_DSCP
 # Enable below define for production
-ifneq ($(CONFIG_SOC_GOOGLE),)
-DHDCFLAGS += -DMACADDR_PROVISION_ENFORCED
-endif
+# ifneq ($(CONFIG_SOC_GOOGLE),)
+# DHDCFLAGS += -DMACADDR_PROVISION_ENFORCED
+# endif
 ifneq ($(CONFIG_BCMDHD_PCIE),)
 	DHDCFLAGS += -DDHD_WAKE_STATUS
 endif
